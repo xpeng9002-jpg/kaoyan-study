@@ -10,3 +10,24 @@ describe('学习空间',()=>{
  it('上传资料，显示解析内容并删除',async()=>{const user=userEvent.setup();const {container}=render(<App/>);await user.click(screen.getByRole('button',{name:'资料管理'}));const input=container.querySelector('input[type=file]') as HTMLInputElement;await user.upload(input,new File(['pdf'],'英语资料.pdf',{type:'application/pdf'}));expect(extractPdf).toHaveBeenCalled();await user.click(await screen.findByRole('button',{name:/英语资料.pdf.*2 页/}));expect(screen.getByText('解析后的合同知识')).toBeInTheDocument();await user.click(screen.getByRole('button',{name:'关闭预览'}));vi.spyOn(window,'confirm').mockReturnValue(true);await user.click(screen.getByRole('button',{name:'删除英语资料.pdf'}));expect(screen.queryByRole('button',{name:/英语资料.pdf/})).not.toBeInTheDocument();});
  it('背诵后更新掌握状态并生成复习路线',async()=>{const user=userEvent.setup();render(<App/>);await user.click(screen.getByRole('button',{name:'智能背诵'}));expect(screen.getByRole('button',{name:/已掌握，下一张/})).toBeDisabled();await user.click(screen.getByRole('button',{name:'查看知识要点'}));await user.click(screen.getByRole('button',{name:/已掌握，下一张/}));expect(JSON.parse(localStorage.getItem('ks-mastered')!)).toContain('en-root');await user.click(screen.getByRole('button',{name:'复习规划'}));expect(screen.queryByRole('heading',{name:'词根与词缀'})).not.toBeInTheDocument();await user.click(screen.getAllByRole('button',{name:'开始学习'})[0]);expect(screen.getByRole('heading',{name:'熟词僻义'})).toBeInTheDocument();});
 });
+
+it('宪法四节可检索、显示考频，并支持标注与背诵', async()=>{
+ const user=userEvent.setup();render(<App/>);
+ await user.click(screen.getByRole('tab',{name:/法律硕士/}));
+ await user.click(screen.getByRole('button',{name:'展开宪法'}));
+ await user.click(screen.getByRole('button',{name:/展开第一章 原理法/}));
+ await user.click(screen.getByRole('button',{name:'第二节 宪法的基本原则'}));
+ expect(screen.getByRole('heading',{name:'第二节 宪法的基本原则'})).toBeInTheDocument();
+ expect(screen.getByText(/非法学4次｜法学2次/)).toBeInTheDocument();
+ expect(screen.getByText(/所属章节主观题（宪法基本理论整章）/)).toBeInTheDocument();
+ await user.type(screen.getByPlaceholderText('搜索知识点…'),'核心功能：保障公民权利');
+ await user.click(screen.getByRole('button',{name:'核心功能：保障公民权利、规范国家权力运作'}));
+ await user.click(screen.getByRole('button',{name:'标记重点'}));
+ await user.click(screen.getByRole('button',{name:'加入错题本'}));
+ await user.click(screen.getByRole('button',{name:'复习规划'}));
+ expect(screen.getByRole('heading',{name:'核心功能：保障公民权利、规范国家权力运作'})).toBeInTheDocument();
+ await user.click(screen.getByRole('button',{name:'智能背诵'}));
+ // English and civil/criminal sample cards precede imported constitutional cards.
+ for(let i=0;i<4;i++){await user.click(screen.getByRole('button',{name:'查看知识要点'}));await user.click(screen.getByRole('button',{name:'还需巩固'}));}
+ expect(screen.getByRole('heading',{name:'性质：规范民主施政规则的国家根本法'})).toBeInTheDocument();
+});
